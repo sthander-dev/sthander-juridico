@@ -6,4 +6,5 @@ dist/
 !.env.example
 coverage/
 *.log
-
+server/data/
+server/secrets/
