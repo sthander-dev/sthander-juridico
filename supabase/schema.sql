@@ -14,6 +14,13 @@ create table public.office_members (
   role public.office_role not null default 'lawyer', active boolean not null default true,
   primary key (office_id,user_id)
 );
+create table public.lawyers (
+  id uuid primary key default gen_random_uuid(), office_id uuid not null references public.offices(id) on delete cascade,
+  full_name text not null, cpf text, oab_number text not null, oab_uf char(2) not null,
+  email text not null, phone text, practice_areas text[] not null default '{}', active boolean not null default true,
+  accepts_auto_assignment boolean not null default true, current_workload integer not null default 0, created_at timestamptz not null default now(),
+  unique(office_id,oab_number,oab_uf)
+);
 create table public.plans (id uuid primary key default gen_random_uuid(), name text not null unique, monthly_amount numeric(12,2) not null, active boolean not null default true);
 create table public.subscriptions (
   id uuid primary key default gen_random_uuid(), office_id uuid not null unique references public.offices(id) on delete cascade,
@@ -33,6 +40,10 @@ create table public.matters (
   id uuid primary key default gen_random_uuid(), office_id uuid not null references public.offices(id) on delete cascade,
   client_id uuid references public.clients(id) on delete set null, process_number text, court text, instance text,
   area text, subject text not null, status text not null default 'open', opened_at date, created_at timestamptz not null default now()
+);
+create table public.matter_lawyers (
+  matter_id uuid not null references public.matters(id) on delete cascade, lawyer_id uuid not null references public.lawyers(id) on delete cascade,
+  role text not null default 'responsible' check(role in ('responsible','co_responsible')), assigned_at timestamptz not null default now(), assigned_by uuid references auth.users(id), primary key(matter_id,lawyer_id)
 );
 create table public.deadlines (
   id uuid primary key default gen_random_uuid(), office_id uuid not null references public.offices(id) on delete cascade,

@@ -392,7 +392,7 @@ export function App() {
                 <button className="text-button" type="button" onClick={reset}>Sair da conta</button>
               </header>
               <nav className="dashboard-nav" aria-label="Módulos do sistema">
-                <button type="button">Visão geral</button><button type="button">Clientes</button><button type="button">Processos</button><button type="button">Agenda</button><button type="button">Financeiro</button><button type="button">Documentos</button>{isMaster && <button type="button" onClick={() => setStep("admin")}>Administrar escritórios</button>}
+                <button type="button">Visão geral</button><button type="button">Clientes</button><button type="button">Processos</button><button type="button">Equipe jurídica</button><button type="button">Agenda</button><button type="button">Financeiro</button><button type="button">Documentos</button>{isMaster && <button type="button" onClick={() => setStep("admin")}>Administrar escritórios</button>}
               </nav>
               <div className="dashboard-notice"><ShieldCheck size={18} /> Ambiente de estrutura inicial. Cadastros reais serão habilitados após as permissões por escritório e proteção de dados.</div>
               <div className="dashboard-grid">
@@ -401,7 +401,7 @@ export function App() {
                 <article><span>Prazos próximos</span><strong>0</strong><p>Agenda processual, tarefas, audiências e lembretes.</p></article>
                 <article><span>Recebimentos</span><strong>R$ 0,00</strong><p>Honorários, contratos, parcelas, despesas e inadimplência.</p></article>
               </div>
-              <section className="dashboard-section"><h3>Estrutura incluída neste sistema</h3><div className="feature-columns"><ul><li>Cadastro completo de pessoa física e jurídica</li><li>Atendimentos, reclamações e triagem</li><li>Contratos, procurações e documentos</li><li>Processos, partes, instâncias e prazos</li></ul><ul><li>Petições, recursos, modelos e tarefas</li><li>Agenda, audiências e notificações</li><li>Honorários, pagamentos e relatórios</li><li>Área master: escritórios, planos, vencimentos e ativações</li></ul></div></section>
+              <section className="dashboard-section"><h3>Equipe jurídica</h3><div className="feature-columns"><ul><li>Cadastro de advogados: nome, CPF, OAB/UF, contato e áreas de atuação</li><li>Status ativo e disponibilidade para distribuição automática</li><li>Advogado responsável e corresponsáveis por processo</li></ul><ul><li>Distribuição manual pelo gerente ou automática por área e carga</li><li>Histórico de atribuição e transferência de responsáveis</li><li>Permissões para advogado, assistente, financeiro e gestor</li></ul></div><button className="primary-button" type="button" disabled>Cadastrar advogado — será habilitado junto ao banco</button></section>
             </div>
           )}
 
