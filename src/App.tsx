@@ -61,7 +61,9 @@ export function App() {
   }, []);
 
   async function prepareSecondFactor() {
-    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError) throw assuranceError;
+    if (!assurance) throw new Error("Não foi possível validar a sessão da conta.");
     if (assurance?.currentLevel === "aal2") {
       setStep("success");
       return;
@@ -69,7 +71,7 @@ export function App() {
 
     const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
     if (factorsError) throw factorsError;
-    const verified = factors.totp.find((factor) => factor.status === "verified");
+    const verified = factors?.totp?.find((factor) => factor.status === "verified");
     if (verified) {
       setFactorId(verified.id);
       setStep("verification");
@@ -81,6 +83,9 @@ export function App() {
       friendlyName: "Google Authenticator",
     });
     if (enrollmentError) throw enrollmentError;
+    if (!enrollment?.totp) {
+      throw new Error("O autenticador não retornou os dados necessários para a configuração.");
+    }
     setFactorId(enrollment.id);
     setQrCode(enrollment.totp.qr_code);
     setTotpSecret(enrollment.totp.secret);
@@ -99,7 +104,7 @@ export function App() {
       return;
     }
     setBusy(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -108,10 +113,19 @@ export function App() {
       setError("E-mail ou senha inválidos.");
       return;
     }
+    if (!signInData.session) {
+      setBusy(false);
+      setError("Não foi possível criar uma sessão segura. Tente entrar novamente.");
+      return;
+    }
     try {
       await prepareSecondFactor();
-    } catch {
-      setError("Não foi possível preparar a verificação em duas etapas.");
+    } catch (reason) {
+      console.error("Falha ao preparar a verificação em duas etapas", reason);
+      const detail = reason instanceof Error ? reason.message : "";
+      setError(detail
+        ? `Não foi possível iniciar o Google Authenticator: ${detail}`
+        : "Não foi possível preparar a verificação em duas etapas.");
     } finally {
       setBusy(false);
     }
