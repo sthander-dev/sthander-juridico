@@ -78,6 +78,19 @@ export function App() {
       return;
     }
 
+    // A leitura do QR Code cria um fator inicialmente pendente. Se a pessoa
+    // voltar antes de digitar o primeiro código, reutilizamos esse fator em
+    // vez de tentar criar outro com o mesmo nome.
+    const pending = factors?.all?.find(
+      (factor) => factor.factor_type === "totp" && factor.status === "unverified",
+    );
+    if (pending) {
+      setFactorId(pending.id);
+      setDigits(initialDigits);
+      setStep("verification");
+      return;
+    }
+
     const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
       factorType: "totp",
       friendlyName: "Google Authenticator",
