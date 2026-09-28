@@ -31,6 +31,12 @@ export function App() {
   const code = useMemo(() => digits.join(""), [digits]);
 
   useEffect(() => {
+    if (window.sessionStorage.getItem("sthander-return-to-login") === "1") {
+      window.sessionStorage.removeItem("sthander-return-to-login");
+      setStep("credentials");
+      return;
+    }
+
     let active = true;
     const fallback = window.setTimeout(() => {
       if (active) setStep("credentials");
@@ -187,6 +193,7 @@ export function App() {
     Object.keys(window.localStorage)
       .filter((key) => key.startsWith("sb-"))
       .forEach((key) => window.localStorage.removeItem(key));
+    window.sessionStorage.setItem("sthander-return-to-login", "1");
     setStep("credentials");
     setDigits(initialDigits);
     setPassword("");
