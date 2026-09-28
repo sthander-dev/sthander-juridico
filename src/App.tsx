@@ -86,17 +86,14 @@ export function App() {
       return;
     }
 
-    // A leitura do QR Code cria um fator inicialmente pendente. Se a pessoa
-    // voltar antes de digitar o primeiro código, reutilizamos esse fator em
-    // vez de tentar criar outro com o mesmo nome.
+    // Um fator pendente não tem uma confirmação concluída. Recomeçamos a
+    // configuração para sempre exibir um QR Code novo e utilizável.
     const pending = factors?.all?.find(
       (factor) => factor.factor_type === "totp" && factor.status === "unverified",
     );
     if (pending) {
-      setFactorId(pending.id);
-      setDigits(initialDigits);
-      setStep("verification");
-      return;
+      const { error: removalError } = await supabase.auth.mfa.unenroll({ factorId: pending.id });
+      if (removalError) throw removalError;
     }
 
     const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
