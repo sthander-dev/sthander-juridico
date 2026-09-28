@@ -84,13 +84,14 @@ button { cursor: pointer; }
 .brand-footer { position: relative; z-index: 1; margin: 0; color: #879caf; font-size: 13px; }
 
 .auth-panel {
+  min-width: 0;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 40px clamp(24px, 6vw, 96px);
   background: linear-gradient(180deg, #fafbfd 0%, #f2f5f8 100%);
 }
-.auth-card { width: min(100%, 440px); }
+.auth-card { width: min(100%, 440px); max-width: 100%; min-width: 0; }
 .development-banner {
   margin-bottom: 20px;
   padding: 10px 13px;
@@ -126,7 +127,7 @@ button { cursor: pointer; }
   letter-spacing: -.025em;
 }
 .card-heading > p:last-child, .success-state > p { margin: 0; color: #647184; line-height: 1.55; }
-form { display: grid; }
+form { display: grid; min-width: 0; }
 label { margin-bottom: 8px; color: #26364a; font-size: 14px; font-weight: 700; }
 input[type="email"], input[type="password"], input[type="text"] {
   width: 100%;
@@ -185,8 +186,8 @@ input::placeholder { color: #99a4b2; }
 .verification-heading { text-align: center; }
 .verification-heading .icon-box { margin: 0 auto 24px; }
 .account-chip { display: inline-block; margin-top: 15px; padding: 7px 11px; border-radius: 99px; color: #526176; background: #e9edf2; font-size: 12px; }
-.code-inputs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
-.code-inputs input { height: 58px; padding: 0; text-align: center; font: 700 23px "Manrope", sans-serif; }
+.code-inputs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 9px; min-width: 0; }
+.code-inputs input { width: 100%; min-width: 0; height: 58px; padding: 0; text-align: center; font: 700 23px "Manrope", sans-serif; }
 .success-state { text-align: center; padding-top: 45px; }
 .success-icon { width: 74px; height: 74px; display: grid; place-items: center; margin: 0 auto 25px; border-radius: 50%; color: #117a70; background: #dff4ef; }
 .success-state .primary-button { width: 100%; }
