@@ -94,6 +94,9 @@ export function App() {
 
       <section className="auth-panel">
         <div className="auth-card">
+          <div className="development-banner" role="status">
+            Ambiente de desenvolvimento — não utilize dados reais nesta versão.
+          </div>
           {step === "credentials" && (
             <>
               <div className="mobile-brand">

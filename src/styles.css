@@ -91,6 +91,18 @@ button { cursor: pointer; }
   background: linear-gradient(180deg, #fafbfd 0%, #f2f5f8 100%);
 }
 .auth-card { width: min(100%, 440px); }
+.development-banner {
+  margin-bottom: 20px;
+  padding: 10px 13px;
+  border: 1px solid #efd99b;
+  border-radius: 9px;
+  color: #6e5411;
+  background: #fff9e8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
 .mobile-brand { display: none; margin-bottom: 48px; }
 .mobile-brand .brand-mark { width: 40px; height: 40px; }
 .mobile-brand strong { font-family: "Manrope"; }
