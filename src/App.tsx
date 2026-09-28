@@ -29,6 +29,7 @@ export function App() {
   const [qrCode, setQrCode] = useState("");
   const [totpSecret, setTotpSecret] = useState("");
   const [isMaster, setIsMaster] = useState(false);
+  const [officeSaved, setOfficeSaved] = useState(false);
   const code = useMemo(() => digits.join(""), [digits]);
 
   useEffect(() => {
@@ -408,7 +409,7 @@ export function App() {
             <div className="dashboard">
               <header className="dashboard-header"><div><p className="eyebrow">Acesso master</p><h2>Administração da plataforma</h2><p>Controle de escritórios, assinaturas e cobrança.</p></div><button className="text-button" type="button" onClick={() => setStep("dashboard")}>Voltar ao painel</button></header>
               <div className="dashboard-grid"><article><span>Escritórios ativos</span><strong>0</strong><p>Cadastre e ative novos escritórios.</p></article><article><span>Pagamentos a vencer</span><strong>0</strong><p>Avisos automáticos antes do vencimento.</p></article><article><span>Em atraso</span><strong>0</strong><p>Controle de bloqueio e regularização.</p></article><article><span>Receita mensal</span><strong>R$ 0,00</strong><p>Indicadores por plano e período.</p></article></div>
-              <section className="dashboard-section"><h3>Cadastro de escritório</h3><div className="feature-columns"><ul><li>Razão social, nome fantasia, CNPJ e endereço</li><li>Advogado responsável, OAB, e-mail e telefone</li><li>Plano contratado, valor, vencimento e status</li></ul><ul><li>Ativação, suspensão e bloqueio de acesso</li><li>Avisos de vencimento e inadimplência</li><li>Histórico de pagamentos e auditoria</li></ul></div><button className="primary-button" type="button" disabled>Adicionar escritório — disponível após conexão do banco</button></section>
+              <section className="dashboard-section"><h3>Cadastrar escritório</h3><form className="office-form" onSubmit={(event) => { event.preventDefault(); setOfficeSaved(true); }}><input required placeholder="Razão social ou nome do escritório" /><input placeholder="CNPJ" /><input required placeholder="Nome do advogado responsável" /><input placeholder="OAB / UF" /><input required type="email" placeholder="E-mail de contato" /><input placeholder="Telefone / WhatsApp" /><select defaultValue=""><option value="" disabled>Plano contratado</option><option>Essencial</option><option>Profissional</option><option>Corporativo</option></select><input required type="number" min="0" step="0.01" placeholder="Valor mensal (R$)" /><input required type="number" min="1" max="28" placeholder="Dia de vencimento" /><select defaultValue="trial"><option value="trial">Em teste</option><option value="active">Ativo</option><option value="suspended">Suspenso</option></select><button className="primary-button" type="submit">Salvar escritório</button></form>{officeSaved && <p className="success-inline">Cadastro preparado. A gravação permanente será habilitada após a conexão final do banco ao painel.</p>}</section>
             </div>
           )}
 
