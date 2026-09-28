@@ -50,8 +50,10 @@ export function App() {
           setStep("credentials");
           return;
         }
-        setEmail(data.session.user.email ?? "");
-        await prepareSecondFactor();
+        // A configuração de MFA nunca deve ser iniciada automaticamente ao
+        // abrir a página. Ela só acontece depois de um login explícito.
+        await supabase.auth.signOut();
+        if (active) setStep("credentials");
       } catch {
         if (active) setStep("credentials");
       } finally {
