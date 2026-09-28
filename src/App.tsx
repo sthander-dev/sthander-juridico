@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -10,33 +10,92 @@ import {
   Scale,
   ShieldCheck
 } from "lucide-react";
+import { supabase } from "./supabase";
 
-type Step = "credentials" | "verification" | "success";
+type Step = "loading" | "credentials" | "enrollment" | "verification" | "success";
 
 const initialDigits = ["", "", "", "", "", ""];
 
 export function App() {
-  const [step, setStep] = useState<Step>("credentials");
+  const [step, setStep] = useState<Step>("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(false);
   const [digits, setDigits] = useState(initialDigits);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [factorId, setFactorId] = useState("");
+  const [qrCode, setQrCode] = useState("");
+  const [totpSecret, setTotpSecret] = useState("");
   const code = useMemo(() => digits.join(""), [digits]);
 
-  function submitCredentials(event: FormEvent) {
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        setStep("credentials");
+        return;
+      }
+      setEmail(data.session.user.email ?? "");
+      await prepareSecondFactor();
+    });
+  }, []);
+
+  async function prepareSecondFactor() {
+    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance?.currentLevel === "aal2") {
+      setStep("success");
+      return;
+    }
+
+    const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+    if (factorsError) throw factorsError;
+    const verified = factors.totp.find((factor) => factor.status === "verified");
+    if (verified) {
+      setFactorId(verified.id);
+      setStep("verification");
+      return;
+    }
+
+    const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: "Google Authenticator",
+    });
+    if (enrollmentError) throw enrollmentError;
+    setFactorId(enrollment.id);
+    setQrCode(enrollment.totp.qr_code);
+    setTotpSecret(enrollment.totp.secret);
+    setStep("enrollment");
+  }
+
+  async function submitCredentials(event: FormEvent) {
     event.preventDefault();
     setError("");
     if (!email.trim() || !password) {
       setError("Informe seu usuário ou e-mail e sua senha para continuar.");
       return;
     }
-    if (email.trim().length < 3) {
-      setError("Informe um usuário ou e-mail válido.");
+    if (!email.includes("@")) {
+      setError("Informe seu e-mail profissional completo.");
       return;
     }
-    setStep("verification");
+    setBusy(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (signInError) {
+      setBusy(false);
+      setError("E-mail ou senha inválidos.");
+      return;
+    }
+    try {
+      await prepareSecondFactor();
+    } catch {
+      setError("Não foi possível preparar a verificação em duas etapas.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function updateDigit(index: number, value: string) {
@@ -48,17 +107,26 @@ export function App() {
     }
   }
 
-  function submitVerification(event: FormEvent) {
+  async function submitVerification(event: FormEvent) {
     event.preventDefault();
     if (code.length !== 6) {
       setError("Digite os seis números do código de verificação.");
+      return;
+    }
+    setBusy(true);
+    const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
+    setBusy(false);
+    if (verificationError) {
+      setError("Código inválido ou expirado. Aguarde o próximo código e tente novamente.");
+      setDigits(initialDigits);
       return;
     }
     setError("");
     setStep("success");
   }
 
-  function reset() {
+  async function reset() {
+    await supabase.auth.signOut();
     setStep("credentials");
     setDigits(initialDigits);
     setPassword("");
@@ -97,6 +165,7 @@ export function App() {
           <div className="development-banner" role="status">
             Ambiente de desenvolvimento — não utilize dados reais nesta versão.
           </div>
+          {step === "loading" && <p className="loading-state">Verificando acesso seguro...</p>}
           {step === "credentials" && (
             <>
               <div className="mobile-brand">
@@ -111,12 +180,12 @@ export function App() {
               </div>
 
               <form onSubmit={submitCredentials} noValidate>
-                <label htmlFor="email">Usuário ou e-mail profissional</label>
+                <label htmlFor="email">E-mail profissional</label>
                 <input
                   id="email"
                   type="text"
                   autoComplete="username"
-                  placeholder="seu usuário ou e-mail"
+                  placeholder="voce@escritorio.com.br"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   aria-describedby={error ? "form-error" : undefined}
@@ -156,12 +225,39 @@ export function App() {
                 </label>
 
                 {error && <p className="error-message" id="form-error" role="alert">{error}</p>}
-                <button className="primary-button" type="submit">Entrar com segurança</button>
+                <button className="primary-button" type="submit" disabled={busy}>{busy ? "Verificando..." : "Entrar com segurança"}</button>
               </form>
 
               <div className="security-note">
                 <ShieldCheck size={18} />
                 <p>Nunca solicitaremos sua senha ou código de verificação por telefone ou WhatsApp.</p>
+              </div>
+            </>
+          )}
+
+          {step === "enrollment" && (
+            <>
+              <button type="button" className="back-button" onClick={reset}><ArrowLeft size={18} /> Sair</button>
+              <div className="card-heading verification-heading">
+                <span className="icon-box"><KeyRound size={22} /></span>
+                <p className="eyebrow">Proteção da conta</p>
+                <h2>Configure o Google Authenticator</h2>
+                <p>Abra o aplicativo, toque em adicionar e escaneie o QR Code abaixo.</p>
+                <span className="account-chip">{email}</span>
+              </div>
+              <div className="qr-panel">
+                <img src={qrCode} alt="QR Code para configurar o Google Authenticator" />
+                <details>
+                  <summary>Não consigo escanear o QR Code</summary>
+                  <code>{totpSecret}</code>
+                </details>
+              </div>
+              <button className="primary-button full-width" type="button" onClick={() => { setDigits(initialDigits); setStep("verification"); }}>
+                Já escaneei o código
+              </button>
+              <div className="security-note">
+                <ShieldCheck size={18} />
+                <p>O QR Code e a chave são exclusivos da sua conta. Não tire foto nem compartilhe.</p>
               </div>
             </>
           )}
@@ -173,7 +269,7 @@ export function App() {
                 <span className="icon-box"><KeyRound size={22} /></span>
                 <p className="eyebrow">Segunda etapa</p>
                 <h2>Confirme que é você</h2>
-                <p>Digite o código exibido no seu aplicativo autenticador.</p>
+                <p>Digite o código exibido no Google Authenticator.</p>
                 <span className="account-chip">{email}</span>
               </div>
               <form onSubmit={submitVerification}>
@@ -197,8 +293,7 @@ export function App() {
                   ))}
                 </div>
                 {error && <p className="error-message" role="alert">{error}</p>}
-                <button className="primary-button" type="submit">Verificar e acessar</button>
-                <button className="secondary-button" type="button">Usar um código de recuperação</button>
+                <button className="primary-button" type="submit" disabled={busy}>{busy ? "Verificando..." : "Verificar e acessar"}</button>
               </form>
               <div className="security-note">
                 <ShieldCheck size={18} />
@@ -212,8 +307,8 @@ export function App() {
               <span className="success-icon"><ShieldCheck size={34} /></span>
               <p className="eyebrow">Identidade confirmada</p>
               <h2>Acesso autorizado</h2>
-              <p>A autenticação foi concluída. Na integração real, você será encaminhado ao painel do escritório.</p>
-              <button className="primary-button" type="button" onClick={reset}>Voltar à demonstração</button>
+              <p>Login e verificação em duas etapas concluídos com segurança.</p>
+              <button className="primary-button" type="button" onClick={reset}>Sair da conta</button>
             </div>
           )}
 
