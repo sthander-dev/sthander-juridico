@@ -181,12 +181,14 @@ export function App() {
     setStep("success");
   }
 
-  async function reset() {
-    await supabase.auth.signOut();
+  function reset() {
+    // A pessoa precisa conseguir retornar ao login mesmo se a chamada de
+    // encerramento da sessão demorar ou ficar indisponível.
     setStep("credentials");
     setDigits(initialDigits);
     setPassword("");
     setError("");
+    void supabase.auth.signOut();
   }
 
   return (
@@ -293,7 +295,7 @@ export function App() {
 
           {step === "enrollment" && (
             <>
-              <button type="button" className="back-button" onClick={reset}><ArrowLeft size={18} /> Sair</button>
+              <button type="button" className="back-button" onClick={reset}><ArrowLeft size={18} /> Sair e voltar ao login</button>
               <div className="card-heading verification-heading">
                 <span className="icon-box"><KeyRound size={22} /></span>
                 <p className="eyebrow">Proteção da conta</p>
@@ -320,7 +322,7 @@ export function App() {
 
           {step === "verification" && (
             <>
-              <button type="button" className="back-button" onClick={reset}><ArrowLeft size={18} /> Voltar</button>
+              <button type="button" className="back-button" onClick={reset}><ArrowLeft size={18} /> Sair e voltar ao login</button>
               <div className="card-heading verification-heading">
                 <span className="icon-box"><KeyRound size={22} /></span>
                 <p className="eyebrow">Segunda etapa</p>
