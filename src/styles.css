@@ -202,7 +202,7 @@ input::placeholder { color: #99a4b2; }
 
 .dashboard { max-width: 1040px; margin: 0 auto; padding: 2.4rem 1.5rem; }
 .admin-login-link { display:block; margin:1rem auto 0; border:0; background:transparent; color:#087a73; font-weight:700; text-decoration:underline; }
-.office-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.office-form input,.office-form select{width:100%;padding:.8rem;border:1px solid #cbd9e3;border-radius:.65rem;background:#fff;font:inherit}.office-form .primary-button{grid-column:1/-1}.success-inline{margin:.8rem 0 0;color:#087a73;font-weight:700}@media(max-width:440px){.office-form{grid-template-columns:1fr}}
+.office-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.office-form input,.office-form select{width:100%;padding:.8rem;border:1px solid #cbd9e3;border-radius:.65rem;background:#fff;font:inherit}.office-form .primary-button{grid-column:1/-1}.success-inline{margin:.8rem 0 0;color:#087a73;font-weight:700}@media(max-width:680px){.office-form{grid-template-columns:1fr}}
 .dashboard-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
 .dashboard-header h2 { margin: .25rem 0; font-size: 2rem; }
 .dashboard-header p { color: #58708e; }
