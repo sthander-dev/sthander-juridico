@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "./supabase";
 
-type Step = "loading" | "credentials" | "enrollment" | "verification" | "success";
+type Step = "loading" | "credentials" | "enrollment" | "verification" | "success" | "dashboard" | "admin";
 
 const initialDigits = ["", "", "", "", "", ""];
 
@@ -28,6 +28,7 @@ export function App() {
   const [factorId, setFactorId] = useState("");
   const [qrCode, setQrCode] = useState("");
   const [totpSecret, setTotpSecret] = useState("");
+  const [isMaster, setIsMaster] = useState(false);
   const code = useMemo(() => digits.join(""), [digits]);
 
   useEffect(() => {
@@ -136,6 +137,7 @@ export function App() {
       setError("Não foi possível criar uma sessão segura. Tente entrar novamente.");
       return;
     }
+    setIsMaster(signInData.user.app_metadata?.role === "master");
     try {
       await prepareSecondFactor();
     } catch (reason) {
@@ -296,6 +298,8 @@ export function App() {
                 <button className="primary-button" type="submit" disabled={busy}>{busy ? "Verificando..." : "Entrar com segurança"}</button>
               </form>
 
+              <button className="admin-login-link" type="button" onClick={() => setError("A área administrativa é liberada automaticamente após o login do usuário master.")}>Área administrativa</button>
+
               <div className="security-note">
                 <ShieldCheck size={18} />
                 <p>Nunca solicitaremos sua senha ou código de verificação por telefone ou WhatsApp.</p>
@@ -376,7 +380,35 @@ export function App() {
               <p className="eyebrow">Identidade confirmada</p>
               <h2>Acesso autorizado</h2>
               <p>Login e verificação em duas etapas concluídos com segurança.</p>
-              <button className="primary-button" type="button" onClick={reset}>Sair da conta</button>
+              <button className="primary-button" type="button" onClick={() => setStep("dashboard")}>Entrar no painel</button>
+            </div>
+          )}
+
+          {step === "dashboard" && (
+            <div className="dashboard">
+              <header className="dashboard-header">
+                <div><p className="eyebrow">Sthander Jurídico</p><h2>Painel do escritório</h2><p>Visão geral segura para a operação jurídica.</p></div>
+                <button className="text-button" type="button" onClick={reset}>Sair da conta</button>
+              </header>
+              <nav className="dashboard-nav" aria-label="Módulos do sistema">
+                <button type="button">Visão geral</button><button type="button">Clientes</button><button type="button">Processos</button><button type="button">Agenda</button><button type="button">Financeiro</button><button type="button">Documentos</button>{isMaster && <button type="button" onClick={() => setStep("admin")}>Administrar escritórios</button>}
+              </nav>
+              <div className="dashboard-notice"><ShieldCheck size={18} /> Ambiente de estrutura inicial. Cadastros reais serão habilitados após as permissões por escritório e proteção de dados.</div>
+              <div className="dashboard-grid">
+                <article><span>Clientes</span><strong>0</strong><p>Cadastros, contatos, documentos e histórico de atendimento.</p></article>
+                <article><span>Processos</span><strong>0</strong><p>Instância, número, partes, prazos, movimentações e peças.</p></article>
+                <article><span>Prazos próximos</span><strong>0</strong><p>Agenda processual, tarefas, audiências e lembretes.</p></article>
+                <article><span>Recebimentos</span><strong>R$ 0,00</strong><p>Honorários, contratos, parcelas, despesas e inadimplência.</p></article>
+              </div>
+              <section className="dashboard-section"><h3>Estrutura incluída neste sistema</h3><div className="feature-columns"><ul><li>Cadastro completo de pessoa física e jurídica</li><li>Atendimentos, reclamações e triagem</li><li>Contratos, procurações e documentos</li><li>Processos, partes, instâncias e prazos</li></ul><ul><li>Petições, recursos, modelos e tarefas</li><li>Agenda, audiências e notificações</li><li>Honorários, pagamentos e relatórios</li><li>Área master: escritórios, planos, vencimentos e ativações</li></ul></div></section>
+            </div>
+          )}
+
+          {step === "admin" && isMaster && (
+            <div className="dashboard">
+              <header className="dashboard-header"><div><p className="eyebrow">Acesso master</p><h2>Administração da plataforma</h2><p>Controle de escritórios, assinaturas e cobrança.</p></div><button className="text-button" type="button" onClick={() => setStep("dashboard")}>Voltar ao painel</button></header>
+              <div className="dashboard-grid"><article><span>Escritórios ativos</span><strong>0</strong><p>Cadastre e ative novos escritórios.</p></article><article><span>Pagamentos a vencer</span><strong>0</strong><p>Avisos automáticos antes do vencimento.</p></article><article><span>Em atraso</span><strong>0</strong><p>Controle de bloqueio e regularização.</p></article><article><span>Receita mensal</span><strong>R$ 0,00</strong><p>Indicadores por plano e período.</p></article></div>
+              <section className="dashboard-section"><h3>Cadastro de escritório</h3><div className="feature-columns"><ul><li>Razão social, nome fantasia, CNPJ e endereço</li><li>Advogado responsável, OAB, e-mail e telefone</li><li>Plano contratado, valor, vencimento e status</li></ul><ul><li>Ativação, suspensão e bloqueio de acesso</li><li>Avisos de vencimento e inadimplência</li><li>Histórico de pagamentos e auditoria</li></ul></div><button className="primary-button" type="button" disabled>Adicionar escritório — disponível após conexão do banco</button></section>
             </div>
           )}
 
