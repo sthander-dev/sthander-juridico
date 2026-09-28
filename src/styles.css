@@ -201,6 +201,11 @@ input::placeholder { color: #99a4b2; }
 .qr-panel code { display: block; margin-top: 12px; padding: 10px; overflow-wrap: anywhere; border-radius: 8px; color: #0e1d30; background: #eef3f6; font-size: 12px; user-select: all; }
 
 .dashboard { max-width: 1040px; margin: 0 auto; padding: 2.4rem 1.5rem; }
+.page-shell:has(.dashboard) { grid-template-columns: 260px minmax(0, 1fr); }
+.page-shell:has(.dashboard) .brand-panel { padding: 38px 30px; }
+.page-shell:has(.dashboard) .brand-message { margin: auto 0; }
+.page-shell:has(.dashboard) .brand-message h1 { font-size: 2rem; }
+.page-shell:has(.dashboard) .brand-message .lead, .page-shell:has(.dashboard) .trust-list { display: none; }
 .admin-login-link { display:block; margin:1rem auto 0; border:0; background:transparent; color:#087a73; font-weight:700; text-decoration:underline; }
 .office-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.office-form input,.office-form select{width:100%;padding:.8rem;border:1px solid #cbd9e3;border-radius:.65rem;background:#fff;font:inherit}.office-form .primary-button{grid-column:1/-1}.success-inline{margin:.8rem 0 0;color:#087a73;font-weight:700}@media(max-width:680px){.office-form{grid-template-columns:1fr}}
 .dashboard-header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
