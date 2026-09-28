@@ -31,14 +31,33 @@ export function App() {
   const code = useMemo(() => digits.join(""), [digits]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) {
-        setStep("credentials");
-        return;
+    let active = true;
+    const fallback = window.setTimeout(() => {
+      if (active) setStep("credentials");
+    }, 2500);
+
+    async function restoreSession() {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!active) return;
+        if (!data.session) {
+          setStep("credentials");
+          return;
+        }
+        setEmail(data.session.user.email ?? "");
+        await prepareSecondFactor();
+      } catch {
+        if (active) setStep("credentials");
+      } finally {
+        window.clearTimeout(fallback);
       }
-      setEmail(data.session.user.email ?? "");
-      await prepareSecondFactor();
-    });
+    }
+
+    void restoreSession();
+    return () => {
+      active = false;
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   async function prepareSecondFactor() {
