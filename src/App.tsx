@@ -160,7 +160,17 @@ export function App() {
       return;
     }
     setBusy(true);
-    const { error: verificationError } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeError || !challenge) {
+      setBusy(false);
+      setError("Não foi possível preparar a confirmação. Atualize a página e tente novamente.");
+      return;
+    }
+    const { error: verificationError } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.id,
+      code,
+    });
     setBusy(false);
     if (verificationError) {
       setError("Código inválido ou expirado. Aguarde o próximo código e tente novamente.");
