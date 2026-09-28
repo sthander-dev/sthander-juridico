@@ -182,13 +182,17 @@ export function App() {
   }
 
   function reset() {
-    // A pessoa precisa conseguir retornar ao login mesmo se a chamada de
-    // encerramento da sessão demorar ou ficar indisponível.
+    // Remove a sessão local antes de recarregar. Assim, uma verificação que
+    // ainda esteja em andamento não consegue devolver a pessoa a esta tela.
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith("sb-"))
+      .forEach((key) => window.localStorage.removeItem(key));
     setStep("credentials");
     setDigits(initialDigits);
     setPassword("");
     setError("");
     void supabase.auth.signOut();
+    window.setTimeout(() => window.location.reload(), 0);
   }
 
   return (
