@@ -5,6 +5,13 @@ atendimentos, documentos, processos, peças, agenda, financeiro e monitoramento 
 
 Endereço planejado: `juridico.sthanderinfo.com.br`
 
+## Publicação de teste
+
+- Prévia Cloudflare Pages: https://sthander-juridico-test.pages.dev
+- O domínio `juridico.sthanderinfo.com.br` continua apontando para a hospedagem anterior até a validação desta prévia.
+- A prévia exibe um aviso de desenvolvimento. Não use dados jurídicos reais nela.
+- O código-fonte está no GitHub: https://github.com/sthander-dev/sthander-juridico
+
 ## Princípios do projeto
 
 - Desenvolvimento e validação em etapas pequenas.
@@ -18,4 +25,3 @@ Endereço planejado: `juridico.sthanderinfo.com.br`
 
 A Etapa 1 contempla a fundação do sistema: organização de escritórios,
 usuários, perfis de acesso, autenticação, auditoria e painel inicial.
-
