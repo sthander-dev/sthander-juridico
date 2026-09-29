@@ -13,6 +13,14 @@ import {
 import { supabase } from "./supabase";
 
 type Step = "loading" | "credentials" | "enrollment" | "verification" | "success" | "dashboard" | "admin";
+type OfficeSummary = {
+  id: string;
+  legal_name: string;
+  cnpj: string | null;
+  contact_email: string;
+  status: string;
+  created_at: string;
+};
 
 const initialDigits = ["", "", "", "", "", ""];
 
@@ -30,7 +38,72 @@ export function App() {
   const [totpSecret, setTotpSecret] = useState("");
   const [isMaster, setIsMaster] = useState(false);
   const [officeSaved, setOfficeSaved] = useState(false);
+  const [officeBusy, setOfficeBusy] = useState(false);
+  const [officeLoading, setOfficeLoading] = useState(false);
+  const [offices, setOffices] = useState<OfficeSummary[]>([]);
+  const [officeError, setOfficeError] = useState("");
   const code = useMemo(() => digits.join(""), [digits]);
+
+  async function loadOffices() {
+    setOfficeLoading(true);
+    setOfficeError("");
+    try {
+      const { data, error: loadError } = await supabase
+        .from("offices")
+        .select("id, legal_name, cnpj, contact_email, status, created_at")
+        .order("created_at", { ascending: false });
+      if (loadError) setOfficeError("Não foi possível carregar os escritórios. Tente atualizar a lista.");
+      else setOffices((data ?? []) as OfficeSummary[]);
+    } catch {
+      setOfficeError("Não foi possível conectar ao banco. Confira sua conexão e tente novamente.");
+    } finally {
+      setOfficeLoading(false);
+    }
+  }
+
+  async function saveOffice(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOfficeSaved(false);
+    setOfficeError("");
+    setError("");
+    setOfficeBusy(true);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const oabNumber = String(form.get("oab_number") ?? "").trim();
+    const oabState = String(form.get("oab_state") ?? "").trim().toUpperCase();
+    try {
+      const { error: saveError } = await supabase.rpc("create_office_with_subscription", {
+        p_legal_name: String(form.get("legal_name") ?? "").trim(),
+        p_cnpj: String(form.get("cnpj") ?? "").replace(/\D/g, "") || null,
+        p_responsible_name: String(form.get("responsible_name") ?? "").trim(),
+        p_oab_responsible: oabNumber ? `${oabNumber}/${oabState}` : null,
+        p_contact_email: String(form.get("email") ?? "").trim(),
+        p_contact_phone: String(form.get("phone") ?? "").trim() || null,
+        p_plan_name: String(form.get("plan") ?? ""),
+        p_amount: Number(form.get("amount")),
+        p_due_day: Number(form.get("due_day")),
+        p_status: String(form.get("status") ?? "trial"),
+      });
+      if (saveError) {
+        console.error("Falha ao salvar escritório", saveError);
+        setOfficeError(saveError.message.includes("create_office_with_subscription")
+          ? "O banco ainda precisa receber a atualização do cadastro. Nenhum dado foi salvo."
+          : "Não foi possível salvar. Confira os dados e tente novamente.");
+        return;
+      }
+      formElement.reset();
+      setOfficeSaved(true);
+      await loadOffices();
+    } catch {
+      setOfficeError("Não foi possível conectar ao banco. Os dados não foram confirmados como salvos.");
+    } finally {
+      setOfficeBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (step === "admin" && isMaster) void loadOffices();
+  }, [step, isMaster]);
 
   useEffect(() => {
     if (window.sessionStorage.getItem("sthander-return-to-login") === "1") {
@@ -406,11 +479,55 @@ export function App() {
           )}
 
           {step === "admin" && isMaster && (
-            <div className="dashboard">
-              <header className="dashboard-header"><div><p className="eyebrow">Acesso master</p><h2>Administração da plataforma</h2><p>Controle de escritórios, assinaturas e cobrança.</p></div><button className="text-button" type="button" onClick={() => setStep("dashboard")}>Voltar ao painel</button></header>
-              <div className="dashboard-grid"><article><span>Escritórios ativos</span><strong>0</strong><p>Cadastre e ative novos escritórios.</p></article><article><span>Pagamentos a vencer</span><strong>0</strong><p>Avisos automáticos antes do vencimento.</p></article><article><span>Em atraso</span><strong>0</strong><p>Controle de bloqueio e regularização.</p></article><article><span>Receita mensal</span><strong>R$ 0,00</strong><p>Indicadores por plano e período.</p></article></div>
-              <section className="dashboard-section"><h3>Cadastrar escritório</h3><form className="office-form" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const { error } = await supabase.from("offices").insert({ legal_name: String(form.get("legal_name")), cnpj: String(form.get("cnpj")) || null, contact_email: String(form.get("email")), contact_phone: String(form.get("phone")) || null, oab_responsible: String(form.get("oab")) || null, status: String(form.get("status")) }); if (!error) { setOfficeSaved(true); event.currentTarget.reset(); } else setError("Não foi possível salvar o escritório: " + error.message); }}><input name="legal_name" required placeholder="Razão social ou nome do escritório" /><input name="cnpj" placeholder="CNPJ" /><input required placeholder="Nome do advogado responsável" /><input name="oab" placeholder="OAB / UF" /><input name="email" required type="email" placeholder="E-mail de contato" /><input name="phone" placeholder="Telefone / WhatsApp" /><select defaultValue=""><option value="" disabled>Plano contratado</option><option>Essencial</option><option>Profissional</option><option>Corporativo</option></select><input required type="number" min="0" step="0.01" placeholder="Valor mensal (R$)" /><input required type="number" min="1" max="28" placeholder="Dia de vencimento" /><select name="status" defaultValue="trial"><option value="trial">Em teste</option><option value="active">Ativo</option><option value="suspended">Suspenso</option></select><button className="primary-button" type="submit">Salvar escritório</button></form>{officeSaved && <p className="success-inline">Escritório salvo com sucesso.</p>}</section>
-              <section className="dashboard-section"><h3>Adicionar membro da equipe</h3><form className="office-form"><input placeholder="Nome completo" required /><input type="email" placeholder="E-mail para convite" required /><select defaultValue="advogado"><option value="advogado">Advogado</option><option value="estagiario">Estagiário</option><option value="assistente">Assistente</option><option value="financeiro">Financeiro</option><option value="gerente">Gerente</option></select><input placeholder="OAB / UF (quando aplicável)" /><input placeholder="Áreas de atuação" /><select defaultValue="sim"><option value="sim">Participa da distribuição automática</option><option value="nao">Somente atribuição manual</option></select><button className="primary-button" type="button">Enviar convite</button></form></section>
+            <div className="dashboard admin-dashboard">
+              <header className="dashboard-header">
+                <div><p className="eyebrow">Área master</p><h2>Escritórios</h2><p>Cadastre e acompanhe os escritórios atendidos pela plataforma.</p></div>
+                <button className="text-button" type="button" onClick={() => setStep("dashboard")}>Voltar ao painel</button>
+              </header>
+
+              <div className="admin-summary" aria-label="Resumo de escritórios">
+                <article><span>Total de escritórios</span><strong>{offices.length}</strong><p>Cadastros registrados</p></article>
+                <article><span>Ativos</span><strong>{offices.filter((office) => office.status === "active").length}</strong><p>Com acesso liberado</p></article>
+                <article><span>Em teste</span><strong>{offices.filter((office) => office.status === "trial").length}</strong><p>Período de avaliação</p></article>
+              </div>
+
+              <section className="dashboard-section office-editor">
+                <div className="section-heading"><div><p className="eyebrow">Novo cadastro</p><h3>Dados do escritório</h3><p>As informações básicas e a assinatura ficam vinculadas ao mesmo cadastro.</p></div></div>
+                <form className="office-form" onSubmit={saveOffice}>
+                  <fieldset>
+                    <legend>Identificação</legend>
+                    <label>Razão social ou nome do escritório<input name="legal_name" autoComplete="organization" required placeholder="Ex.: Silva & Machado Advocacia" /></label>
+                    <label>CNPJ <span className="optional-label">Opcional</span><input name="cnpj" inputMode="numeric" autoComplete="off" placeholder="00.000.000/0000-00" /></label>
+                    <label>Advogado responsável<input name="responsible_name" required autoComplete="name" placeholder="Nome completo" /></label>
+                    <div className="field-group"><label>Número da OAB<input name="oab_number" placeholder="Ex.: 123456" /></label><label>UF<select name="oab_state" defaultValue="RJ"><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></label></div>
+                  </fieldset>
+                  <fieldset>
+                    <legend>Contato</legend>
+                    <label>E-mail de contato<input name="email" required type="email" autoComplete="email" placeholder="contato@escritorio.com.br" /></label>
+                    <label>Telefone ou WhatsApp<input name="phone" type="tel" autoComplete="tel" placeholder="(00) 00000-0000" /></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend>Assinatura</legend>
+                    <label>Plano<select name="plan" required defaultValue=""><option value="" disabled>Selecione um plano</option><option value="Essencial">Essencial</option><option value="Profissional">Profissional</option><option value="Corporativo">Corporativo</option></select></label>
+                    <label>Mensalidade<input name="amount" required type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" /></label>
+                    <label>Dia de vencimento<input name="due_day" required type="number" min="1" max="28" placeholder="1 a 28" /><small>Escolha um dia entre 1 e 28.</small></label>
+                    <label>Situação<select name="status" defaultValue="trial"><option value="trial">Em teste</option><option value="active">Ativo</option><option value="suspended">Suspenso</option></select></label>
+                  </fieldset>
+                  {officeError && <p className="error-message form-feedback" role="alert">{officeError}</p>}
+                  {officeSaved && <p className="success-inline form-feedback" role="status">Escritório e assinatura salvos.</p>}
+                  <div className="form-actions"><p>Os dados só serão gravados após a confirmação do banco.</p><button className="primary-button" type="submit" disabled={officeBusy}>{officeBusy ? "Salvando…" : "Salvar escritório"}</button></div>
+                </form>
+              </section>
+
+              <section className="dashboard-section office-list-section">
+                <div className="section-heading"><div><p className="eyebrow">Cadastros</p><h3>Escritórios cadastrados</h3></div><button className="secondary-button refresh-button" type="button" onClick={() => void loadOffices()} disabled={officeLoading}>{officeLoading ? "Atualizando…" : "Atualizar lista"}</button></div>
+                {officeError && !officeSaved && <p className="error-message" role="alert">{officeError}</p>}
+                {officeLoading ? <p className="empty-state">Carregando escritórios…</p> : offices.length === 0 ? <p className="empty-state">Nenhum escritório cadastrado ainda.</p> : (
+                  <div className="office-table-wrap"><table className="office-table"><thead><tr><th>Escritório</th><th>CNPJ</th><th>Contato</th><th>Situação</th><th>Cadastro</th></tr></thead><tbody>{offices.map((office) => <tr key={office.id}><td>{office.legal_name}</td><td>{office.cnpj || "—"}</td><td>{office.contact_email}</td><td><span className={`status-pill status-${office.status}`}>{office.status === "active" ? "Ativo" : office.status === "trial" ? "Em teste" : office.status}</span></td><td>{new Date(office.created_at).toLocaleDateString("pt-BR")}</td></tr>)}</tbody></table></div>
+                )}
+              </section>
+
+              <section className="dashboard-section next-step-card"><div><p className="eyebrow">Próxima etapa</p><h3>Equipe e acessos</h3><p>O envio de convites e a gestão de permissões serão liberados depois da configuração segura dos convites por e-mail.</p></div><button className="secondary-button" type="button" disabled>Em preparação</button></section>
             </div>
           )}
 
