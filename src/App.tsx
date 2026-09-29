@@ -7,6 +7,7 @@ import {
   FileLock2,
   KeyRound,
   LockKeyhole,
+  Pencil,
   Scale,
   ShieldCheck
 } from "lucide-react";
@@ -17,9 +18,15 @@ type OfficeSummary = {
   id: string;
   legal_name: string;
   cnpj: string | null;
+  responsible_name: string | null;
+  oab_responsible: string | null;
   contact_email: string;
+  contact_phone: string | null;
   status: string;
   created_at: string;
+  plan_name: string;
+  amount: number;
+  due_day: number;
 };
 
 const initialDigits = ["", "", "", "", "", ""];
@@ -41,6 +48,7 @@ export function App() {
   const [officeBusy, setOfficeBusy] = useState(false);
   const [officeLoading, setOfficeLoading] = useState(false);
   const [offices, setOffices] = useState<OfficeSummary[]>([]);
+  const [editingOffice, setEditingOffice] = useState<OfficeSummary | null>(null);
   const [officeError, setOfficeError] = useState("");
   const code = useMemo(() => digits.join(""), [digits]);
 
@@ -50,10 +58,49 @@ export function App() {
     try {
       const { data, error: loadError } = await supabase
         .from("offices")
-        .select("id, legal_name, cnpj, contact_email, status, created_at")
+        .select("id, legal_name, cnpj, responsible_name, oab_responsible, contact_email, contact_phone, status, created_at")
         .order("created_at", { ascending: false });
-      if (loadError) setOfficeError("Não foi possível carregar os escritórios. Tente atualizar a lista.");
-      else setOffices((data ?? []) as OfficeSummary[]);
+      if (loadError) {
+        setOfficeError("Não foi possível carregar os escritórios. Tente atualizar a lista.");
+        return;
+      }
+
+      const officeRows = data ?? [];
+      if (officeRows.length === 0) {
+        setOffices([]);
+        return;
+      }
+
+      const officeIds = officeRows.map((office) => office.id);
+      const { data: subscriptions, error: subscriptionError } = await supabase
+        .from("subscriptions")
+        .select("office_id, plan_id, amount, due_day")
+        .in("office_id", officeIds);
+      if (subscriptionError) {
+        setOfficeError("Não foi possível carregar as assinaturas vinculadas aos escritórios.");
+        return;
+      }
+
+      const planIds = [...new Set((subscriptions ?? []).map((subscription) => subscription.plan_id).filter(Boolean))];
+      const { data: plans, error: planError } = planIds.length
+        ? await supabase.from("plans").select("id, name").in("id", planIds)
+        : { data: [], error: null };
+      if (planError) {
+        setOfficeError("Não foi possível carregar os planos dos escritórios.");
+        return;
+      }
+
+      const subscriptionsByOffice = new Map((subscriptions ?? []).map((subscription) => [subscription.office_id, subscription]));
+      const planNames = new Map((plans ?? []).map((plan) => [plan.id, plan.name]));
+      setOffices(officeRows.map((office) => {
+        const subscription = subscriptionsByOffice.get(office.id);
+        return {
+          ...office,
+          plan_name: subscription ? planNames.get(subscription.plan_id) ?? "" : "",
+          amount: Number(subscription?.amount ?? 0),
+          due_day: Number(subscription?.due_day ?? 1),
+        } as OfficeSummary;
+      }));
     } catch {
       setOfficeError("Não foi possível conectar ao banco. Confira sua conexão e tente novamente.");
     } finally {
@@ -72,7 +119,7 @@ export function App() {
     const oabNumber = String(form.get("oab_number") ?? "").trim();
     const oabState = String(form.get("oab_state") ?? "").trim().toUpperCase();
     try {
-      const { error: saveError } = await supabase.rpc("create_office_with_subscription", {
+      const officeFields = {
         p_legal_name: String(form.get("legal_name") ?? "").trim(),
         p_cnpj: String(form.get("cnpj") ?? "").replace(/\D/g, "") || null,
         p_responsible_name: String(form.get("responsible_name") ?? "").trim(),
@@ -83,15 +130,19 @@ export function App() {
         p_amount: Number(form.get("amount")),
         p_due_day: Number(form.get("due_day")),
         p_status: String(form.get("status") ?? "trial"),
-      });
+      };
+      const { error: saveError } = editingOffice
+        ? await supabase.rpc("update_office_with_subscription", { p_office_id: editingOffice.id, ...officeFields })
+        : await supabase.rpc("create_office_with_subscription", officeFields);
       if (saveError) {
         console.error("Falha ao salvar escritório", saveError);
-        setOfficeError(saveError.message.includes("create_office_with_subscription")
-          ? "O banco ainda precisa receber a atualização do cadastro. Nenhum dado foi salvo."
+        setOfficeError(saveError.message.includes("office_with_subscription")
+          ? "O banco ainda precisa receber a atualização dos cadastros. Nenhum dado foi salvo."
           : "Não foi possível salvar. Confira os dados e tente novamente.");
         return;
       }
       formElement.reset();
+      setEditingOffice(null);
       setOfficeSaved(true);
       await loadOffices();
     } catch {
@@ -99,6 +150,12 @@ export function App() {
     } finally {
       setOfficeBusy(false);
     }
+  }
+
+  function beginOfficeEdit(office: OfficeSummary) {
+    setEditingOffice(office);
+    setOfficeSaved(false);
+    setOfficeError("");
   }
 
   useEffect(() => {
@@ -492,30 +549,30 @@ export function App() {
               </div>
 
               <section className="dashboard-section office-editor">
-                <div className="section-heading"><div><p className="eyebrow">Novo cadastro</p><h3>Dados do escritório</h3><p>As informações básicas e a assinatura ficam vinculadas ao mesmo cadastro.</p></div></div>
-                <form className="office-form" onSubmit={saveOffice}>
+                <div className="section-heading"><div><p className="eyebrow">{editingOffice ? "Editar cadastro" : "Novo cadastro"}</p><h3>{editingOffice ? editingOffice.legal_name : "Dados do escritório"}</h3><p>As informações básicas e a assinatura ficam vinculadas ao mesmo cadastro.</p></div></div>
+                <form className="office-form" key={editingOffice?.id ?? "new-office"} onSubmit={saveOffice}>
                   <fieldset>
                     <legend>Identificação</legend>
-                    <label>Razão social ou nome do escritório<input name="legal_name" autoComplete="organization" required placeholder="Ex.: Silva & Machado Advocacia" /></label>
-                    <label>CNPJ <span className="optional-label">Opcional</span><input name="cnpj" inputMode="numeric" autoComplete="off" placeholder="00.000.000/0000-00" /></label>
-                    <label>Advogado responsável<input name="responsible_name" required autoComplete="name" placeholder="Nome completo" /></label>
-                    <div className="field-group"><label>Número da OAB<input name="oab_number" placeholder="Ex.: 123456" /></label><label>UF<select name="oab_state" defaultValue="RJ"><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></label></div>
+                    <label>Razão social ou nome do escritório<input name="legal_name" autoComplete="organization" required placeholder="Ex.: Silva & Machado Advocacia" defaultValue={editingOffice?.legal_name ?? ""} /></label>
+                    <label>CNPJ <span className="optional-label">Opcional</span><input name="cnpj" inputMode="numeric" autoComplete="off" placeholder="00.000.000/0000-00" defaultValue={editingOffice?.cnpj ?? ""} /></label>
+                    <label>Advogado responsável<input name="responsible_name" required autoComplete="name" placeholder="Nome completo" defaultValue={editingOffice?.responsible_name ?? ""} /></label>
+                    <div className="field-group"><label>Número da OAB<input name="oab_number" placeholder="Ex.: 123456" defaultValue={editingOffice?.oab_responsible?.split("/")[0] ?? ""} /></label><label>UF<select name="oab_state" defaultValue={editingOffice?.oab_responsible?.split("/")[1] ?? "RJ"}><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></label></div>
                   </fieldset>
                   <fieldset>
                     <legend>Contato</legend>
-                    <label>E-mail de contato<input name="email" required type="email" autoComplete="email" placeholder="contato@escritorio.com.br" /></label>
-                    <label>Telefone ou WhatsApp<input name="phone" type="tel" autoComplete="tel" placeholder="(00) 00000-0000" /></label>
+                    <label>E-mail de contato<input name="email" required type="email" autoComplete="email" placeholder="contato@escritorio.com.br" defaultValue={editingOffice?.contact_email ?? ""} /></label>
+                    <label>Telefone ou WhatsApp<input name="phone" type="tel" autoComplete="tel" placeholder="(00) 00000-0000" defaultValue={editingOffice?.contact_phone ?? ""} /></label>
                   </fieldset>
                   <fieldset>
                     <legend>Assinatura</legend>
-                    <label>Plano<select name="plan" required defaultValue=""><option value="" disabled>Selecione um plano</option><option value="Essencial">Essencial</option><option value="Profissional">Profissional</option><option value="Corporativo">Corporativo</option></select></label>
-                    <label>Mensalidade<input name="amount" required type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" /></label>
-                    <label>Dia de vencimento<input name="due_day" required type="number" min="1" max="28" placeholder="1 a 28" /><small>Escolha um dia entre 1 e 28.</small></label>
-                    <label>Situação<select name="status" defaultValue="trial"><option value="trial">Em teste</option><option value="active">Ativo</option><option value="suspended">Suspenso</option></select></label>
+                    <label>Plano<select name="plan" required defaultValue={editingOffice?.plan_name ?? ""}><option value="" disabled>Selecione um plano</option><option value="Essencial">Essencial</option><option value="Profissional">Profissional</option><option value="Corporativo">Corporativo</option></select></label>
+                    <label>Mensalidade<input name="amount" required type="number" min="0" step="0.01" inputMode="decimal" placeholder="R$ 0,00" defaultValue={editingOffice?.amount ?? ""} /></label>
+                    <label>Dia de vencimento<input name="due_day" required type="number" min="1" max="28" placeholder="1 a 28" defaultValue={editingOffice?.due_day ?? ""} /><small>Escolha um dia entre 1 e 28.</small></label>
+                    <label>Situação<select name="status" defaultValue={editingOffice?.status ?? "trial"}><option value="trial">Em teste</option><option value="active">Ativo</option><option value="overdue">Em atraso</option><option value="suspended">Suspenso</option><option value="cancelled">Cancelado</option></select></label>
                   </fieldset>
                   {officeError && <p className="error-message form-feedback" role="alert">{officeError}</p>}
-                  {officeSaved && <p className="success-inline form-feedback" role="status">Escritório e assinatura salvos.</p>}
-                  <div className="form-actions"><p>Os dados só serão gravados após a confirmação do banco.</p><button className="primary-button" type="submit" disabled={officeBusy}>{officeBusy ? "Salvando…" : "Salvar escritório"}</button></div>
+                  {officeSaved && <p className="success-inline form-feedback" role="status">Cadastro do escritório e assinatura salvos.</p>}
+                  <div className="form-actions"><p>Os dados só serão gravados após a confirmação do banco.</p><div className="form-action-buttons">{editingOffice && <button className="secondary-button" type="button" onClick={() => setEditingOffice(null)}>Cancelar edição</button>}<button className="primary-button" type="submit" disabled={officeBusy}>{officeBusy ? "Salvando…" : editingOffice ? "Salvar alterações" : "Salvar escritório"}</button></div></div>
                 </form>
               </section>
 
@@ -523,7 +580,7 @@ export function App() {
                 <div className="section-heading"><div><p className="eyebrow">Cadastros</p><h3>Escritórios cadastrados</h3></div><button className="secondary-button refresh-button" type="button" onClick={() => void loadOffices()} disabled={officeLoading}>{officeLoading ? "Atualizando…" : "Atualizar lista"}</button></div>
                 {officeError && !officeSaved && <p className="error-message" role="alert">{officeError}</p>}
                 {officeLoading ? <p className="empty-state">Carregando escritórios…</p> : offices.length === 0 ? <p className="empty-state">Nenhum escritório cadastrado ainda.</p> : (
-                  <div className="office-table-wrap"><table className="office-table"><thead><tr><th>Escritório</th><th>CNPJ</th><th>Contato</th><th>Situação</th><th>Cadastro</th></tr></thead><tbody>{offices.map((office) => <tr key={office.id}><td>{office.legal_name}</td><td>{office.cnpj || "—"}</td><td>{office.contact_email}</td><td><span className={`status-pill status-${office.status}`}>{office.status === "active" ? "Ativo" : office.status === "trial" ? "Em teste" : office.status}</span></td><td>{new Date(office.created_at).toLocaleDateString("pt-BR")}</td></tr>)}</tbody></table></div>
+                  <div className="office-table-wrap"><table className="office-table"><thead><tr><th>Escritório</th><th>CNPJ</th><th>Contato</th><th>Situação</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>{offices.map((office) => <tr key={office.id}><td>{office.legal_name}</td><td>{office.cnpj || "—"}</td><td>{office.contact_email}</td><td><span className={`status-pill status-${office.status}`}>{office.status === "active" ? "Ativo" : office.status === "trial" ? "Em teste" : office.status}</span></td><td>{new Date(office.created_at).toLocaleDateString("pt-BR")}</td><td><button className="office-edit-button" type="button" onClick={() => beginOfficeEdit(office)} aria-label={`Editar ${office.legal_name}`}><Pencil size={15} aria-hidden="true" />Editar</button></td></tr>)}</tbody></table></div>
                 )}
               </section>
 

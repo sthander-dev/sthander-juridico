@@ -81,5 +81,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_office_with_subscription(text,text,text,numeric,smallint,text,text,text,text,text) from public;
+revoke all on function public.create_office_with_subscription(text,text,text,numeric,smallint,text,text,text,text,text) from public, anon;
 grant execute on function public.create_office_with_subscription(text,text,text,numeric,smallint,text,text,text,text,text) to authenticated;

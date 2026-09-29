@@ -280,6 +280,10 @@ input::placeholder { color: #99a4b2; }
 .office-table th, .office-table td { padding: .85rem .75rem; border-bottom: 1px solid #e6ecf1; white-space: nowrap; }
 .office-table th { color: #52677d; font-size: .82rem; font-weight: 800; }
 .office-table td { color: #1d3044; font-size: .93rem; }
+.office-edit-button { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .7rem; border: 1px solid #cbd9e3; border-radius: .6rem; color: #126f68; background: #fff; font-weight: 700; }
+.office-edit-button:hover { border-color: #82c4bb; background: #f2faf8; }
+.form-action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
+.form-action-buttons .primary-button { width: auto; min-width: 190px; }
 .status-pill { display: inline-flex; padding: .28rem .6rem; border-radius: 99px; color: #6e5411; background: #fff5d9; font-size: .82rem; font-weight: 700; }
 .status-active { color: #14644f; background: #e4f5ee; }
 .status-suspended, .status-overdue { color: #9e3038; background: #fcebed; }
