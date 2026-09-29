@@ -474,7 +474,7 @@ export function App() {
                 <article><span>Prazos próximos</span><strong>0</strong><p>Agenda processual, tarefas, audiências e lembretes.</p></article>
                 <article><span>Recebimentos</span><strong>R$ 0,00</strong><p>Honorários, contratos, parcelas, despesas e inadimplência.</p></article>
               </div>
-              <section className="dashboard-section"><h3>Equipe jurídica</h3><div className="feature-columns"><ul><li>Cadastro de advogados: nome, CPF, OAB/UF, contato e áreas de atuação</li><li>Status ativo e disponibilidade para distribuição automática</li><li>Advogado responsável e corresponsáveis por processo</li></ul><ul><li>Distribuição manual pelo gerente ou automática por área e carga</li><li>Histórico de atribuição e transferência de responsáveis</li><li>Permissões para advogado, assistente, financeiro e gestor</li></ul></div><button className="primary-button" type="button" disabled>Cadastrar advogado — será habilitado junto ao banco</button></section>
+              <section className="dashboard-section"><h3>Equipe jurídica deste escritório</h3><p className="team-intro">O cadastro da equipe ficará vinculado a este escritório. Será possível incluir vários advogados, associados e cooperadores, cada um com seu próprio acesso.</p><div className="feature-columns"><ul><li>Dados profissionais, OAB/UF, contato e áreas de atuação</li><li>Tipo de vínculo e status de cada integrante</li><li>Advogado responsável e corresponsáveis por processo</li></ul><ul><li>Distribuição manual ou por área e carga de trabalho</li><li>Histórico de atribuições e transferências</li><li>Permissões conforme a função de cada pessoa</li></ul></div><button className="primary-button" type="button" disabled>Cadastro de equipe — em preparação</button></section>
             </div>
           )}
 
@@ -527,7 +527,7 @@ export function App() {
                 )}
               </section>
 
-              <section className="dashboard-section next-step-card"><div><p className="eyebrow">Próxima etapa</p><h3>Equipe e acessos</h3><p>O envio de convites e a gestão de permissões serão liberados depois da configuração segura dos convites por e-mail.</p></div><button className="secondary-button" type="button" disabled>Em preparação</button></section>
+              <section className="dashboard-section next-step-card"><div><p className="eyebrow">Próxima etapa</p><h3>Equipe e acessos</h3><p>Depois de cadastrar um escritório, a equipe será gerenciada dentro dele. Um escritório poderá ter vários advogados, associados e cooperadores, com convites e permissões individuais.</p></div><button className="secondary-button" type="button" disabled>Em preparação</button></section>
             </div>
           )}
 

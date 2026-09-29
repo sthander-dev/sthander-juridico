@@ -200,7 +200,7 @@ input::placeholder { color: #99a4b2; }
 .qr-panel summary { cursor: pointer; font-weight: 700; }
 .qr-panel code { display: block; margin-top: 12px; padding: 10px; overflow-wrap: anywhere; border-radius: 8px; color: #0e1d30; background: #eef3f6; font-size: 12px; user-select: all; }
 
-.dashboard { max-width: 1040px; margin: 0 auto; padding: 2.4rem 1.5rem; }
+.dashboard { width: 100%; max-width: 1240px; margin: 0 auto; padding: 2.4rem clamp(1.25rem, 3vw, 2.5rem); }
 .page-shell:has(.dashboard) { grid-template-columns: 260px minmax(0, 1fr); }
 .page-shell:has(.dashboard) .brand-panel { padding: 38px 30px; }
 .page-shell:has(.dashboard) .brand-message { margin: auto 0; }
@@ -218,9 +218,12 @@ input::placeholder { color: #99a4b2; }
 .dashboard-grid article, .dashboard-section { border: 1px solid #d6e1e8; border-radius: 1rem; padding: 1.15rem; background: #fff; }
 .dashboard-grid span { font-size: .85rem; color: #55708c; }.dashboard-grid strong { display: block; font-size: 1.7rem; color: #071d39; margin: .3rem 0; }.dashboard-grid p { margin: 0; color: #58708e; font-size: .87rem; line-height: 1.5; }
 .dashboard-section h3 { margin-top: 0; }.feature-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }.feature-columns ul { margin: 0; padding-left: 1.2rem; color: #35526d; line-height: 1.85; font-size: .9rem; }
+.team-intro { max-width: 72ch; margin: -.35rem 0 1rem; color: #58708e; line-height: 1.6; }
 
 @media (max-width: 860px) {
   .page-shell { grid-template-columns: 1fr; }
+  /* The dashboard's desktop sidebar track must not constrain the mobile layout. */
+  .page-shell:has(.dashboard) { grid-template-columns: minmax(0, 1fr); }
   .brand-panel { display: none; }
   .mobile-brand { display: flex; }
   .auth-panel { padding-top: 32px; }
